@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>סוכן AI — סטודיו ציפורניים של ליאור</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f8f4f6; color: #1a1a1a; min-height: 100vh; }
+  .app { max-width: 720px; margin: 0 auto; padding: 1.5rem 1rem; }
+  .header { margin-bottom: 1.5rem; }
+  .header h1 { font-size: 20px; font-weight: 600; color: #1a1a1a; }
+  .header p { font-size: 13px; color: #888; margin-top: 3px; }
+
+  .tabs { display: flex; gap: 6px; margin-bottom: 1.5rem; flex-wrap: wrap; }
+  .tab { padding: 8px 16px; border: 1px solid #ddd; border-radius: 8px; font-size: 13px; cursor: pointer; background: #fff; color: #666; transition: all 0.15s; }
+  .tab.active { background: #D4537E; color: #fff; border-color: #D4537E; font-weight: 500; }
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* CHAT */
+  .chat-wrap { border: 1px solid #e5e5e5; border-radius: 14px; overflow: hidden; background: #f9f5f7; }
+  .messages { padding: 1rem; display: flex; flex-direction: column; gap: 10px; min-height: 280px; max-height: 360px; overflow-y: auto; }
+  .msg { max-width: 80%; padding: 10px 14px; border-radius: 14px; font-size: 14px; line-height: 1.55; }
+  .msg.agent { background: #fff; border: 1px solid #ececec; color: #1a1a1a; align-self: flex-start; border-radius: 4px 14px 14px 14px; }
+  .msg.user { background: #D4537E; color: #fff; align-self: flex-end; border-radius: 14px 4px 14px 14px; }
+  .msg.thinking { color: #aaa; font-style: italic; background: #fff; border: 1px solid #ececec; align-self: flex-start; border-radius: 4px 14px 14px 14px; }
+  .quick-btns { display: flex; gap: 6px; flex-wrap: wrap; padding: 8px 12px; border-top: 1px solid #ececec; background: #fff; }
+  .qbtn { padding: 5px 12px; border: 1px solid #ddd; border-radius: 20px; font-size: 12px; cursor: pointer; background: #fff; color: #666; }
+  .qbtn:hover { border-color: #D4537E; color: #D4537E; }
+  .input-row { display: flex; gap: 8px; padding: 10px 12px; border-top: 1px solid #ececec; background: #fff; }
+  .input-row input { flex: 1; padding: 9px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; }
+  .input-row input:focus { border-color: #D4537E; }
+  .send-btn { padding: 9px 18px; background: #D4537E; color: #fff; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: 500; }
+
+  /* PRICES */
+  .price-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+  .price-header span { font-size: 15px; font-weight: 500; }
+  .add-btn { padding: 8px 16px; background: #D4537E; color: #fff; border: none; border-radius: 8px; font-size: 13px; cursor: pointer; }
+  .price-card { background: #fff; border: 1px solid #e5e5e5; border-radius: 14px; overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; }
+  th { font-size: 12px; font-weight: 500; color: #888; text-align: right; padding: 10px 12px; border-bottom: 1px solid #f0f0f0; background: #fafafa; }
+  td { padding: 10px 12px; border-bottom: 1px solid #f5f5f5; font-size: 14px; }
+  tr:last-child td { border-bottom: none; }
+  td input { border: none; background: transparent; font-size: 14px; color: #1a1a1a; width: 100%; padding: 2px 0; outline: none; }
+  td input:focus { border-bottom: 1px solid #D4537E; }
+  .del-btn { background: none; border: none; cursor: pointer; color: #ccc; font-size: 18px; line-height: 1; }
+  .del-btn:hover { color: #D4537E; }
+
+  /* CALENDAR */
+  .cal-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .cal-card { background: #fff; border: 1px solid #e5e5e5; border-radius: 14px; padding: 1rem; }
+  .cal-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .cal-nav button { background: none; border: 1px solid #e0e0e0; border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 14px; color: #555; }
+  .cal-nav button:hover { border-color: #D4537E; color: #D4537E; }
+  .cal-title { font-size: 14px; font-weight: 600; color: #1a1a1a; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+  .cal-day-name { font-size: 10px; color: #aaa; text-align: center; padding: 4px 0; }
+  .cal-day { font-size: 12px; text-align: center; padding: 6px 2px; border-radius: 6px; cursor: pointer; color: #333; position: relative; }
+  .cal-day:hover { background: #fdf0f4; }
+  .cal-day.today { background: #fdf0f4; color: #D4537E; font-weight: 600; }
+  .cal-day.selected { background: #D4537E; color: #fff; font-weight: 600; }
+  .cal-day.has-appt::after { content:''; position:absolute; bottom:2px; left:50%; transform:translateX(-50%); width:4px; height:4px; background:#D4537E; border-radius:50%; }
+  .cal-day.selected::after { background: #fff; }
+  .cal-day.empty { cursor: default; }
+  .appt-date-title { font-size: 14px; font-weight: 600; color: #1a1a1a; margin-bottom: 10px; }
+  .appt-item { background: #fdf6f9; border-radius: 8px; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .appt-name { font-size: 13px; font-weight: 500; }
+  .appt-detail { font-size: 11px; color: #888; margin-top: 2px; }
+  .appt-time { font-size: 13px; color: #D4537E; font-weight: 600; }
+  .appt-empty { font-size: 13px; color: #aaa; text-align: center; padding: 1.5rem 0; }
+  .new-appt-btn { width: 100%; padding: 8px; border: 1px dashed #ddd; border-radius: 8px; font-size: 13px; cursor: pointer; color: #999; background: transparent; margin-top: 8px; }
+  .new-appt-btn:hover { border-color: #D4537E; color: #D4537E; }
+
+  /* MODAL */
+  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 100; }
+  .modal { background: #fff; border-radius: 16px; padding: 1.5rem; width: 320px; box-shadow: 0 8px 32px rgba(0,0,0,0.15); }
+  .modal h3 { font-size: 16px; font-weight: 600; margin-bottom: 1rem; }
+  .modal label { font-size: 12px; color: #888; display: block; margin: 10px 0 3px; }
+  .modal input, .modal select { width: 100%; padding: 9px 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; }
+  .modal input:focus, .modal select:focus { border-color: #D4537E; }
+  .modal-btns { display: flex; gap: 8px; margin-top: 1.25rem; }
+  .modal-btns button { flex: 1; padding: 10px; border-radius: 8px; font-size: 14px; cursor: pointer; }
+  .btn-confirm { background: #D4537E; color: #fff; border: none; font-weight: 500; }
+  .btn-cancel { background: transparent; border: 1px solid #ddd; color: #555; }
+
+  /* MARKETING */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .mcard { background: #fff; border: 1px solid #e5e5e5; border-radius: 14px; padding: 1rem 1.25rem; }
+  .mcard h3 { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .mcard p { font-size: 12px; color: #888; margin-bottom: 8px; }
+  .mcard textarea { width: 100%; border: 1px solid #e0e0e0; border-radius: 8px; padding: 8px; font-size: 13px; resize: none; outline: none; }
+  .mcard textarea:focus { border-color: #D4537E; }
+  .gen-btn { width: 100%; padding: 8px; background: #fdf0f4; border: 1px solid #f0c0d0; border-radius: 8px; font-size: 13px; cursor: pointer; color: #D4537E; margin-top: 6px; font-weight: 500; }
+  .gen-btn:hover { background: #D4537E; color: #fff; border-color: #D4537E; }
+  .result-box { background: #fafafa; border: 1px solid #ececec; border-radius: 8px; padding: 10px; font-size: 13px; line-height: 1.6; white-space: pre-wrap; margin-top: 8px; }
+  .copy-btn { font-size: 12px; color: #aaa; background: none; border: none; cursor: pointer; margin-top: 4px; }
+  .copy-btn:hover { color: #D4537E; }
+
+  /* FOLLOWUP */
+  .fcard { background: #fff; border: 1px solid #e5e5e5; border-radius: 14px; padding: 1rem 1.25rem; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .fcard-name { font-size: 14px; font-weight: 600; }
+  .fcard-sub { font-size: 12px; color: #888; margin-top: 2px; }
+  .badge { font-size: 11px; padding: 3px 10px; border-radius: 20px; font-weight: 500; margin-left: 8px; }
+  .badge-new { background: #fdf0f4; color: #c0405f; }
+  .badge-remind { background: #fff8ec; color: #a06010; }
+  .badge-loyal { background: #edf7e6; color: #3a7020; }
+  .msg-btn { padding: 6px 14px; font-size: 12px; border: 1px solid #e0e0e0; border-radius: 8px; cursor: pointer; background: #fff; color: #555; }
+  .msg-btn:hover { border-color: #D4537E; color: #D4537E; }
+
+  .spinner { display:inline-block; width:11px; height:11px; border:2px solid #f0c0d0; border-top-color:#D4537E; border-radius:50%; animation:spin 0.7s linear infinite; margin-right:5px; vertical-align:middle; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 500px) {
+    .two-col, .cal-layout { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <h1>✨ סוכן AI — סטודיו ציפורניים של ליאור</h1>
+    <p>שירות לקוחות · מחירון · לוח שנה · שיווק</p>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('chat',this)">שירות לקוחות</div>
+    <div class="tab" onclick="switchTab('prices',this)">מחירון</div>
+    <div class="tab" onclick="switchTab('calendar',this)">לוח שנה</div>
+    <div class="tab" onclick="switchTab('marketing',this)">אינסטגרם</div>
+    <div class="tab" onclick="switchTab('followup',this)">מעקב לקוחות</div>
+  </div>
+
+  <!-- CHAT -->
+  <div class="section active" id="tab-chat">
+    <div class="chat-wrap">
+      <div class="messages" id="messages">
+        <div class="msg agent">היי! אני כאן בשביל ליאור ✨ איך אפשר לעזור לך היום?</div>
+      </div>
+      <div class="quick-btns">
+        <span class="qbtn" onclick="quickSend('מה המחירים שלכם?')">מחירים</span>
+        <span class="qbtn" onclick="quickSend('אני רוצה לקבוע תור')">קביעת תור</span>
+        <span class="qbtn" onclick="quickSend('כמה זמן לוקח מאניקור ג׳ל?')">כמה זמן?</span>
+        <span class="qbtn" onclick="quickSend('יש מקום להיום?')">זמינות היום</span>
+      </div>
+      <div class="input-row">
+        <input type="text" id="userInput" placeholder="כתבי הודעה..." onkeydown="if(event.key==='Enter') sendMsg()" />
+        <button class="send-btn" onclick="sendMsg()">שלח</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRICES -->
+  <div class="section" id="tab-prices">
+    <div class="price-header">
+      <span>שירותים ומחירים</span>
+      <div style="display:flex;gap:8px"><button class="add-btn" onclick="addService()">+ הוסיפי שירות</button><button class="add-btn" style="background:#3a7020" onclick="saveServices();alert('המחירון נשמר! ✓')">שמור מחירון</button></div>
+    </div>
+    <div class="price-card">
+      <table>
+        <thead><tr><th>שירות</th><th>מחיר (₪)</th><th>זמן (דק׳)</th><th></th></tr></thead>
+        <tbody id="priceBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- CALENDAR -->
+  <div class="section" id="tab-calendar">
+    <div class="cal-layout">
+      <div class="cal-card">
+        <div class="cal-nav">
+          <button onclick="changeMonth(-1)">‹</button>
+          <span class="cal-title" id="calTitle"></span>
+          <button onclick="changeMonth(1)">›</button>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+      </div>
+      <div class="cal-card" id="apptPanel">
+        <div class="appt-date-title" id="apptTitle">בחרי תאריך</div>
+        <div id="apptList"><div class="appt-empty">בחרי יום בלוח</div></div>
+        <button class="new-appt-btn" id="newApptBtn" style="display:none" onclick="openModal()">+ תור חדש</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MARKETING -->
+  <div class="section" id="tab-marketing">
+    <div class="two-col">
+      <div class="mcard">
+        <h3>פוסט אינסטגרם</h3>
+        <p>תארי את העבודה — הסוכן יכתוב</p>
+        <textarea id="postTopic" rows="2" placeholder="לדוגמה: מאניקור בייבי בומר חתונה"></textarea>
+        <button class="gen-btn" id="postBtn" onclick="genPost()">צרי פוסט ↗</button>
+        <div class="result-box" id="postResult" style="display:none"></div>
+        <button class="copy-btn" id="copyPost" style="display:none" onclick="copyEl('postResult')">העתק</button>
+      </div>
+      <div class="mcard">
+        <h3>כיתובי סטורי</h3>
+        <p>קבלי 3 אפשרויות מוכנות</p>
+        <textarea id="storyTopic" rows="2" placeholder="לדוגמה: מבצע יום שישי — 20% הנחה"></textarea>
+        <button class="gen-btn" id="storyBtn" onclick="genStory()">צרי סטורי ↗</button>
+        <div class="result-box" id="storyResult" style="display:none"></div>
+        <button class="copy-btn" id="copyStory" style="display:none" onclick="copyEl('storyResult')">העתק</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOLLOWUP -->
+  <div class="section" id="tab-followup">
+    <div id="followupCards">
+      <div class="fcard">
+        <div><div class="fcard-name">נועה כ׳</div><div class="fcard-sub">ביקור אחרון: לפני 3 שבועות · ג׳ל אדום</div></div>
+        <div style="display:flex;align-items:center"><span class="badge badge-remind">זמן לריפרש</span><button class="msg-btn" onclick="genFollowup('נועה','ג׳ל אדום','3 שבועות')">צרי הודעה ↗</button></div>
+      </div>
+      <div class="fcard">
+        <div><div class="fcard-name">שירה מ׳</div><div class="fcard-sub">ביקור ראשון: לפני שבוע · מאניקור ישרה</div></div>
+        <div style="display:flex;align-items:center"><span class="badge badge-new">לקוחה חדשה</span><button class="msg-btn" onclick="genFollowup('שירה','מאניקור ישרה','שבוע')">צרי הודעה ↗</button></div>
+      </div>
+      <div class="fcard">
+        <div><div class="fcard-name">מיה ר׳</div><div class="fcard-sub">ביקור אחרון: לפני 6 שבועות · ג׳ל נייד</div></div>
+        <div style="display:flex;align-items:center"><span class="badge badge-loyal">לקוחה נאמנה</span><button class="msg-btn" onclick="genFollowup('מיה','ג׳ל נייד','6 שבועות')">צרי הודעה ↗</button></div>
+      </div>
+    </div>
+    <div id="followupResult" style="display:none; margin-top:1rem;">
+      <div class="result-box" id="followupText"></div>
+      <button class="copy-btn" onclick="copyEl('followupText')">העתק הודעה</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-bg" id="modal" style="display:none" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <h3>תור חדש</h3>
+    <label>שם לקוחה</label>
+    <input type="text" id="mName" placeholder="שם מלא" />
+    <label>שירות</label>
+    <select id="mService"></select>
+    <label>שעה</label>
+    <input type="time" id="mTime" value="10:00" />
+    <label>טלפון (אופציונלי)</label>
+    <input type="text" id="mPhone" placeholder="05X-XXXXXXX" />
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">ביטול</button>
+      <button class="btn-confirm" onclick="saveAppt()">שמרי תור</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── API ─────────────────────────────────────────────────────────────
+async function callClaude(system, messages) {
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ system, messages })
+    });
+    const data = await res.json();
+    return data.content?.[0]?.text || 'שגיאה — נסי שוב';
+  } catch(e) {
+    return 'שגיאת חיבור — ודאי שהשרת רץ';
+  }
+}
+
+// ─── SERVICES ────────────────────────────────────────────────────────
+const DEFAULT_SERVICES = [
+  { name: 'מאניקור ישרה', price: 80, duration: 45 },
+  { name: 'מאניקור ג׳ל', price: 150, duration: 60 },
+  { name: 'פדיקור', price: 120, duration: 60 },
+  { name: 'ג׳ל נייד', price: 170, duration: 75 },
+  { name: 'הסרת ג׳ל', price: 50, duration: 30 },
+];
+function loadServices() { try { const s=localStorage.getItem('lior_services'); return s?JSON.parse(s):DEFAULT_SERVICES; } catch(e){return DEFAULT_SERVICES;} }
+function saveServices() { localStorage.setItem('lior_services', JSON.stringify(services)); }
+let services = loadServices();
+
+function renderPrices() {
+  const tbody = document.getElementById('priceBody');
+  tbody.innerHTML = '';
+  services.forEach((s, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input value="${s.name}" oninput="services[${i}].name=this.value;saveServices();syncServiceSelect()" /></td>
+      <td><input type="text" value="${s.price}" style="width:80px" oninput="services[${i}].price=this.value;saveServices()" /></td>
+      <td><input type="number" value="${s.duration}" style="width:60px" oninput="services[${i}].duration=+this.value;saveServices()" /></td>
+      <td><button class="del-btn" onclick="delService(${i})">×</button></td>`;
+    tbody.appendChild(tr);
+  });
+  syncServiceSelect();
+}
+function addService() { services.push({ name: 'שירות חדש', price: 0, duration: 45 }); saveServices(); renderPrices(); }
+function delService(i) { services.splice(i, 1); saveServices(); renderPrices(); }
+function syncServiceSelect() {
+  const sel = document.getElementById('mService');
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = services.map(s => `<option value="${s.name}">${s.name} — ${s.price}₪</option>`).join('');
+  if (cur) sel.value = cur;
+}
+
+// ─── CALENDAR ────────────────────────────────────────────────────────
+let currentYear, currentMonth, selectedDate;
+let appointments = {};
+
+function initCalendar() {
+  const now = new Date();
+  currentYear = now.getFullYear();
+  currentMonth = now.getMonth();
+  renderCalendar();
+}
+function changeMonth(dir) {
+  currentMonth += dir;
+  if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+  if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+  renderCalendar();
+}
+function renderCalendar() {
+  const months = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+  document.getElementById('calTitle').textContent = `${months[currentMonth]} ${currentYear}`;
+  const grid = document.getElementById('calGrid');
+  grid.innerHTML = '';
+  ['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳'].forEach(d => {
+    const el = document.createElement('div'); el.className='cal-day-name'; el.textContent=d; grid.appendChild(el);
+  });
+  const first = new Date(currentYear, currentMonth, 1).getDay();
+  const total = new Date(currentYear, currentMonth+1, 0).getDate();
+  const today = new Date();
+  for (let i = 0; i < first; i++) { const el=document.createElement('div'); el.className='cal-day empty'; grid.appendChild(el); }
+  for (let d = 1; d <= total; d++) {
+    const key = dateKey(currentYear, currentMonth, d);
+    const el = document.createElement('div'); el.className='cal-day'; el.textContent=d;
+    if (today.getFullYear()===currentYear && today.getMonth()===currentMonth && today.getDate()===d) el.classList.add('today');
+    if (appointments[key]?.length) el.classList.add('has-appt');
+    if (selectedDate===key) el.classList.add('selected');
+    el.onclick = () => selectDate(currentYear, currentMonth, d);
+    grid.appendChild(el);
+  }
+}
+function dateKey(y,m,d) { return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
+function selectDate(y,m,d) {
+  selectedDate = dateKey(y,m,d);
+  renderCalendar();
+  const months=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+  document.getElementById('apptTitle').textContent = `${d} ב${months[m]}`;
+  document.getElementById('newApptBtn').style.display='block';
+  renderAppts();
+}
+function renderAppts() {
+  const list = document.getElementById('apptList');
+  const appts = (appointments[selectedDate]||[]).sort((a,b)=>a.time.localeCompare(b.time));
+  if (!appts.length) { list.innerHTML='<div class="appt-empty">אין תורים ביום זה</div>'; return; }
+  list.innerHTML = appts.map((a,i)=>`
+    <div class="appt-item">
+      <div><div class="appt-name">${a.name}</div><div class="appt-detail">${a.service}${a.phone?' · '+a.phone:''}</div></div>
+      <div style="display:flex;align-items:center;gap:8px"><span class="appt-time">${a.time}</span><button class="del-btn" onclick="delAppt(${i})">×</button></div>
+    </div>`).join('');
+}
+function delAppt(i) { appointments[selectedDate].splice(i,1); renderAppts(); renderCalendar(); }
+function openModal() { syncServiceSelect(); document.getElementById('mName').value=''; document.getElementById('mPhone').value=''; document.getElementById('modal').style.display='flex'; }
+function closeModal() { document.getElementById('modal').style.display='none'; }
+function saveAppt() {
+  const name = document.getElementById('mName').value.trim();
+  if (!name) { alert('נא להכניס שם'); return; }
+  if (!appointments[selectedDate]) appointments[selectedDate]=[];
+  appointments[selectedDate].push({ name, service: document.getElementById('mService').value, time: document.getElementById('mTime').value, phone: document.getElementById('mPhone').value.trim() });
+  closeModal(); renderAppts(); renderCalendar();
+}
+
+// ─── CHAT ────────────────────────────────────────────────────────────
+let chatHistory = [];
+function buildSystemChat() {
+  const priceList = services.map(s=>`${s.name}: ${s.price}₪`).join(', ');
+  const now = new Date();
+  const todayKey = dateKey(now.getFullYear(), now.getMonth(), now.getDate());
+  const todayAppts = (appointments[todayKey]||[]).map(a=>`${a.time} — ${a.name} (${a.service})`).join(', ')||'אין תורים';
+  return `אתה סוכן שירות לקוחות של ליאור, מניקוריסטית מקצועית. קהל: בנות 18-25. כתבי בעברית, בגובה העיניים, חמות ונגישות. אל תכתבי יותר מ-3 משפטים קצרים. המחירון: ${priceList}. תורים להיום: ${todayAppts}. לתיאום תורים בקשי שם וטלפון.`;
+}
+function addMsg(text, cls) {
+  const el = document.createElement('div'); el.className='msg '+cls; el.textContent=text;
+  const msgs = document.getElementById('messages'); msgs.appendChild(el); msgs.scrollTop=msgs.scrollHeight;
+  return el;
+}
+async function sendMsg() {
+  const input = document.getElementById('userInput');
+  const text = input.value.trim(); if(!text) return;
+  input.value='';
+  addMsg(text,'user');
+  chatHistory.push({role:'user',content:text});
+  const loadEl = addMsg('מקלידה...','thinking');
+  const reply = await callClaude(buildSystemChat(), chatHistory);
+  loadEl.textContent=reply; loadEl.className='msg agent';
+  chatHistory.push({role:'assistant',content:reply});
+}
+function quickSend(text) { document.getElementById('userInput').value=text; sendMsg(); }
+
+// ─── MARKETING ───────────────────────────────────────────────────────
+const SYS_MKT = `את כותבת תוכן שיווקי לאינסטגרם עבור סטודיו ציפורניים בישראל. קהל: בנות 18-25. סגנון: קצר, ויבי, אימוג'י, ישראלי, לא פורמלי. כלול hashtags בעברית ואנגלית.`;
+async function genPost() {
+  const topic = document.getElementById('postTopic').value.trim(); if(!topic) return;
+  const btn=document.getElementById('postBtn'); btn.innerHTML='<span class="spinner"></span>יוצרת...'; btn.disabled=true;
+  const res = await callClaude(SYS_MKT,[{role:'user',content:'כתבי פוסט אינסטגרם על: '+topic}]);
+  const box=document.getElementById('postResult'); box.textContent=res; box.style.display='block';
+  document.getElementById('copyPost').style.display='block';
+  btn.innerHTML='צרי פוסט ↗'; btn.disabled=false;
+}
+async function genStory() {
+  const topic = document.getElementById('storyTopic').value.trim(); if(!topic) return;
+  const btn=document.getElementById('storyBtn'); btn.innerHTML='<span class="spinner"></span>יוצרת...'; btn.disabled=true;
+  const res = await callClaude(SYS_MKT,[{role:'user',content:'כתבי 3 כיתובים קצרים לסטורי על: '+topic+'. כל אחד בשורה נפרדת עם מספר.'}]);
+  const box=document.getElementById('storyResult'); box.textContent=res; box.style.display='block';
+  document.getElementById('copyStory').style.display='block';
+  btn.innerHTML='צרי סטורי ↗'; btn.disabled=false;
+}
+
+// ─── FOLLOWUP ────────────────────────────────────────────────────────
+const SYS_FU = `את כותבת הודעות מעקב לוואטסאפ מסטודיו ציפורניים. סגנון: חמות, 2-3 משפטים, אימוג'י, לא מכירתי. תמיד עם שם הלקוחה.`;
+async function genFollowup(name, service, time) {
+  const res = await callClaude(SYS_FU,[{role:'user',content:`כתבי הודעת מעקב לוואטסאפ ל${name} שעשתה ${service} לפני ${time}. בקשי לקבוע תור הבא.`}]);
+  document.getElementById('followupResult').style.display='block';
+  document.getElementById('followupText').textContent=res;
+}
+function copyEl(id) { navigator.clipboard.writeText(document.getElementById(id).textContent).then(()=>alert('הועתק!')); }
+
+// ─── TABS ─────────────────────────────────────────────────────────────
+function switchTab(name,el) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────
+renderPrices();
+initCalendar();
+</script>
+</body>
+</html>
